@@ -1,5 +1,10 @@
 # go-serializer
 
+[![Test](https://github.com/grandper/go-serializer/actions/workflows/go-test.yml/badge.svg)](https://github.com/grandper/go-serializer/actions/workflows/go-test.yml)
+[![Lint](https://github.com/grandper/go-serializer/actions/workflows/go-lint.yml/badge.svg)](https://github.com/grandper/go-serializer/actions/workflows/go-lint.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/grandper/go-serializer/serializer.svg)](https://pkg.go.dev/github.com/grandper/go-serializer/serializer)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > Type-aware serialization for Go — round-trip any registered struct through JSON, gob, or Protocol Buffers **without naming the destination type at decode time**.
 
 With `encoding/json` and most other Go serializers, decoding forces you to know
