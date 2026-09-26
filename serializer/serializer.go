@@ -159,7 +159,8 @@ func (s *Serializer) Deserialize(data []byte) (any, error) {
 			return nil, fmt.Errorf("%w: %w: no migration from schema version %d",
 				ErrFailedToDeserialize, ErrNoMigrationPath, v)
 		}
-		value, err := entry.decode(s.codec, payload)
+		var value any
+		value, err = entry.decode(s.codec, payload)
 		if err != nil {
 			return nil, err // already wrapped by the decode closure
 		}
@@ -338,16 +339,20 @@ func validateMigrations(name string, version int, currentType reflect.Type, migr
 		oldest--
 	}
 	if len(byFrom) != version-oldest {
-		panic(fmt.Sprintf("serializer: RegisterVersioned(%q): migrations must form a contiguous run ending at version %d",
-			name, version-1))
+		panic(
+			fmt.Sprintf("serializer: RegisterVersioned(%q): migrations must form a contiguous run ending at version %d",
+				name, version-1),
+		)
 	}
 
 	// Type links: each step's output feeds the next step's input, and the last
 	// step's output is the current type T.
 	for k := oldest; k <= version-2; k++ {
 		if byFrom[k].outType != byFrom[k+1].inType {
-			panic(fmt.Sprintf("serializer: RegisterVersioned(%q): migration From(%d) outputs %s but From(%d) expects %s",
-				name, k, byFrom[k].outType, k+1, byFrom[k+1].inType))
+			panic(
+				fmt.Sprintf("serializer: RegisterVersioned(%q): migration From(%d) outputs %s but From(%d) expects %s",
+					name, k, byFrom[k].outType, k+1, byFrom[k+1].inType),
+			)
 		}
 	}
 	if last := byFrom[version-1]; last.outType != currentType {
@@ -440,7 +445,7 @@ func normalizedType(aStruct any) reflect.Type {
 // The mapping is immutable per type, so a sync.Map keeps the Serialize hot path
 // allocation-free for already-seen types while remaining safe for concurrent
 // use — the key set is small, bounded, and read-dominated.
-var typeNameCache sync.Map // map[reflect.Type]string
+var typeNameCache sync.Map //nolint:gochecknoglobals // process-wide memo of an immutable reflect.Type -> name mapping
 
 // typeName returns the wire name for a pointer-stripped reflect.Type, caching
 // the result. It errors for nil types and for unnamed (anonymous, slice, map,
@@ -451,8 +456,10 @@ func typeName(t reflect.Type) (string, error) {
 	if t == nil {
 		return "", errors.New("cannot determine the type of a nil value")
 	}
-	if name, ok := typeNameCache.Load(t); ok {
-		return name.(string), nil
+	if cached, ok := typeNameCache.Load(t); ok {
+		if name, isString := cached.(string); isString {
+			return name, nil
+		}
 	}
 	if t.Name() == "" {
 		return "", fmt.Errorf("cannot serialize the unnamed type %q", t.String())

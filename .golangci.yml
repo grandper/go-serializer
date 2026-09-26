@@ -450,3 +450,9 @@ linters:
           - gosec
           - noctx
           - wrapcheck
+      # The fixture package only holds sample values for tests, so shared
+      # fixtures and literal sample numbers are expected there.
+      - path: '^internal/fixture/'
+        linters:
+          - gochecknoglobals
+          - mnd

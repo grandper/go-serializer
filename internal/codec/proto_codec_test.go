@@ -4,11 +4,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/grandper/go-serializer/internal/codec"
-	"github.com/grandper/go-serializer/internal/fixture"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/grandper/go-serializer/internal/codec"
+	"github.com/grandper/go-serializer/internal/fixture"
 )
 
 func TestProtoCodec(t *testing.T) {
@@ -19,34 +21,34 @@ func TestProtoCodec(t *testing.T) {
 
 	t.Run("should encode and decode a proto.Message", func(t *testing.T) {
 		serializedDuration, err := protoCodec.Encode(d)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		var duration durationpb.Duration
 		err = protoCodec.Decode(serializedDuration, &duration)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, proto.Equal(d, &duration))
 	})
 
 	t.Run("should fail to encode a non-proto.Message struct", func(t *testing.T) {
 		serializedUser1, err := protoCodec.Encode(fixture.User1)
-		assert.ErrorIs(t, err, codec.ErrValueIsNotProtoMessage)
+		require.ErrorIs(t, err, codec.ErrValueIsNotProtoMessage)
 		assert.Nil(t, serializedUser1)
 	})
 
 	t.Run("should fail to decode into a non-proto.Message struct", func(t *testing.T) {
 		var user fixture.User
 		err := protoCodec.Decode([]byte(testSerializedUser1), &user)
-		assert.ErrorIs(t, err, codec.ErrValueIsNotProtoMessage)
+		require.ErrorIs(t, err, codec.ErrValueIsNotProtoMessage)
 	})
 
 	t.Run("should fail to encode an invalid proto.Message", func(t *testing.T) {
 		_, err := protoCodec.Encode(fixture.InvalidProtoMessageInstanceV2)
-		assert.ErrorIs(t, err, codec.ErrCannotEncodeStruct)
+		require.ErrorIs(t, err, codec.ErrCannotEncodeStruct)
 	})
 
 	t.Run("should fail to decode into an invalid proto.Message", func(t *testing.T) {
 		invalidProtoMessage := &durationpb.Duration{}
 		err := protoCodec.Decode([]byte{0x00, 0x01, 0x02}, invalidProtoMessage)
-		assert.ErrorIs(t, err, codec.ErrCannotDecodeStruct)
+		require.ErrorIs(t, err, codec.ErrCannotDecodeStruct)
 	})
 }

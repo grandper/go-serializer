@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/grandper/go-serializer/internal/fixture"
-	"github.com/grandper/go-serializer/serializer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/grandper/go-serializer/internal/fixture"
+	"github.com/grandper/go-serializer/serializer"
 )
 
 func TestNewJSONSerializer(t *testing.T) {
@@ -20,7 +21,7 @@ func TestNewJSONSerializer(t *testing.T) {
 
 	t.Run("should embed a readable JSON payload", func(t *testing.T) {
 		data, err := s.Serialize(fixture.User1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// The JSON codec payload must be embedded verbatim (not base64-encoded), so
 		// the envelope stays human-readable and is not double-encoded.
@@ -29,13 +30,13 @@ func TestNewJSONSerializer(t *testing.T) {
 	})
 
 	t.Run("should fail when the payload does not match the registered type", func(t *testing.T) {
-		s := serializer.NewJSONSerializer(serializer.RegisterAs("user", fixture.User{}))
+		js := serializer.NewJSONSerializer(serializer.RegisterAs("user", fixture.User{}))
 
 		// The envelope is well-formed and the type is registered, but the payload is
 		// a JSON array that cannot be decoded into a User struct.
 		envelope := `{"version":0,"type":"user","data":[1,2,3]}`
-		_, err := s.Deserialize([]byte(envelope))
-		assert.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
+		_, err := js.Deserialize([]byte(envelope))
+		require.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
 	})
 }
 
@@ -45,13 +46,13 @@ func TestNewByteSerializer(t *testing.T) {
 	validateSerializer(t, s)
 
 	t.Run("should fail on a corrupt binary payload", func(t *testing.T) {
-		s := serializer.NewByteSerializer(serializer.RegisterAs("user", fixture.User{}))
+		bs := serializer.NewByteSerializer(serializer.RegisterAs("user", fixture.User{}))
 
 		// For binary codecs the data field must be a base64-encoded JSON string; a
 		// bare JSON number cannot be decoded back into the payload bytes.
 		envelope := `{"version":0,"type":"user","data":123}`
-		_, err := s.Deserialize([]byte(envelope))
-		assert.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
+		_, err := bs.Deserialize([]byte(envelope))
+		require.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
 	})
 }
 
@@ -61,10 +62,10 @@ func TestNewProtoSerializer(t *testing.T) {
 		now := timestamppb.Now()
 
 		data, err := s.Serialize(now)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		deserialized, err := s.Deserialize(data)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		deserializedNow := deserialized.(*timestamppb.Timestamp)
 		assert.True(t, proto.Equal(now, deserializedNow))
 	})
@@ -73,14 +74,14 @@ func TestNewProtoSerializer(t *testing.T) {
 		s := serializer.NewProtoSerializer()
 
 		_, err := s.Serialize(fixture.User1)
-		assert.ErrorIs(t, err, serializer.ErrFailedToSerialize)
+		require.ErrorIs(t, err, serializer.ErrFailedToSerialize)
 	})
 
 	t.Run("should fail to serialize a list of non-proto.Message", func(t *testing.T) {
 		s := serializer.NewProtoSerializer()
 
 		_, err := s.SerializeList([]any{fixture.User1})
-		assert.ErrorIs(t, err, serializer.ErrFailedToSerializeList)
+		require.ErrorIs(t, err, serializer.ErrFailedToSerializeList)
 	})
 
 	t.Run("should fail on a corrupt proto payload", func(t *testing.T) {
@@ -88,10 +89,10 @@ func TestNewProtoSerializer(t *testing.T) {
 
 		// A base64 payload whose bytes are not a valid Timestamp fails to decode.
 		badPayload, err := json.Marshal([]byte{0x00, 0x01, 0x02})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		envelope := `{"version":0,"type":"ts","data":` + string(badPayload) + `}`
 		_, err = s.Deserialize([]byte(envelope))
-		assert.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
+		require.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
 	})
 }
 
@@ -105,10 +106,10 @@ func TestNewSerializer(t *testing.T) {
 		)
 
 		data, err := s.Serialize(fixture.User1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		deserialized, err := s.Deserialize(data)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, fixture.User1, deserialized)
 	})
 }
@@ -124,34 +125,34 @@ func validateSerializer(t *testing.T, s *serializer.Serializer) {
 
 	t.Run("should serialize and deserialize a struct", func(t *testing.T) {
 		serializedUser1, err := s.Serialize(fixture.User1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		deserializedUser1, err := s.Deserialize(serializedUser1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, fixture.User1, deserializedUser1)
 	})
 
 	t.Run("should serialize and deserialize a pointer to a struct", func(t *testing.T) {
 		serializedUser1, err := s.Serialize(&fixture.User1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		deserializedUser1, err := s.Deserialize(serializedUser1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, fixture.User1, deserializedUser1)
 	})
 
 	t.Run("should serialize and deserialize a list of structs", func(t *testing.T) {
 		serializedList, err := s.SerializeList(list)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		deserializedList, err := s.DeserializeList(serializedList)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, list, deserializedList)
 	})
 
 	t.Run("should fail to deserialize an unregistered type", func(t *testing.T) {
 		serializedAddress, err := s.Serialize(fixture.Address1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = s.Deserialize(serializedAddress)
 		assert.Error(t, err)
@@ -159,10 +160,10 @@ func validateSerializer(t *testing.T, s *serializer.Serializer) {
 
 	t.Run("should serialize and deserialize a list of a given type", func(t *testing.T) {
 		serializedList, err := serializer.SerializeList(s, userList)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		deserializedList, err := serializer.DeserializeList[fixture.User](s, serializedList)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, userList, deserializedList)
 	})
 
@@ -178,7 +179,7 @@ func validateSerializer(t *testing.T, s *serializer.Serializer) {
 
 	t.Run("should fail to deserialize a list as the wrong type", func(t *testing.T) {
 		serializedList, err := serializer.SerializeList(s, userList)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = serializer.DeserializeList[fixture.Address](s, serializedList)
 		assert.Error(t, err)
@@ -195,12 +196,12 @@ func TestRegister(t *testing.T) {
 		for name, s := range serializers {
 			t.Run(name, func(t *testing.T) {
 				data, err := s.Serialize(&fixture.User1)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// Registering a pointer type yields a pointer on deserialization, so
 				// the recovered value keeps the same kind as the registered type.
 				deserialized, err := s.Deserialize(data)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				user, ok := deserialized.(*fixture.User)
 				assert.True(t, ok)
 				assert.Equal(t, fixture.User1, *user)
@@ -212,10 +213,10 @@ func TestRegister(t *testing.T) {
 		s := serializer.NewJSONSerializer(serializer.Register[*fixture.User](nil))
 
 		data, err := s.Serialize(&fixture.User1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		deserialized, err := s.Deserialize(data)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		user, ok := deserialized.(*fixture.User)
 		assert.True(t, ok)
 		assert.Equal(t, fixture.User1, *user)
@@ -227,13 +228,13 @@ func TestRegisterAs(t *testing.T) {
 		s := serializer.NewJSONSerializer(serializer.RegisterAs("user", fixture.User{}))
 
 		data, err := s.Serialize(fixture.User1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		// The wire type tag uses the stable name, not the import path.
 		assert.Contains(t, string(data), `"type":"user"`)
 		assert.NotContains(t, string(data), "internal/fixture")
 
 		deserialized, err := s.Deserialize(data)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, fixture.User1, deserialized)
 	})
 }
@@ -243,10 +244,10 @@ func TestRegisterType(t *testing.T) {
 		s := serializer.NewByteSerializer(serializer.RegisterType[fixture.User]())
 
 		data, err := s.Serialize(fixture.User1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		deserialized, err := s.Deserialize(data)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, fixture.User1, deserialized)
 	})
 }
@@ -256,11 +257,11 @@ func TestRegisterTypeAs(t *testing.T) {
 		s := serializer.NewJSONSerializer(serializer.RegisterTypeAs[fixture.User]("user"))
 
 		data, err := s.Serialize(fixture.User1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Contains(t, string(data), `"type":"user"`)
 
 		deserialized, err := s.Deserialize(data)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, fixture.User1, deserialized)
 	})
 }
@@ -270,7 +271,7 @@ func TestRegisterVersioned(t *testing.T) {
 		s := serializer.NewJSONSerializer(serializer.Register(fixture.User{}))
 
 		data, err := s.Serialize(fixture.User1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, 1, envelopeVersion(t, data))
 	})
 
@@ -278,7 +279,7 @@ func TestRegisterVersioned(t *testing.T) {
 		s := newVersionedUserSerializer()
 
 		data, err := s.Serialize(fixture.User1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, 3, envelopeVersion(t, data))
 	})
 
@@ -288,7 +289,7 @@ func TestRegisterVersioned(t *testing.T) {
 		// A version-1 envelope carrying the userV1 shape must migrate 1->2->3.
 		envelope := `{"version":1,"type":"user","data":{"Name":"Jane Doe"}}`
 		v, err := s.Deserialize([]byte(envelope))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, fixture.User{Username: "Jane Doe"}, v)
 	})
 
@@ -298,7 +299,7 @@ func TestRegisterVersioned(t *testing.T) {
 		// A version-2 envelope carrying the userV2 shape must migrate 2->3.
 		envelope := `{"version":2,"type":"user","data":{"Username":"janedoe"}}`
 		v, err := s.Deserialize([]byte(envelope))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, fixture.User{Username: "janedoe"}, v)
 	})
 
@@ -307,8 +308,8 @@ func TestRegisterVersioned(t *testing.T) {
 
 		envelope := `{"version":999,"type":"user","data":{}}`
 		_, err := s.Deserialize([]byte(envelope))
-		assert.ErrorIs(t, err, serializer.ErrSchemaTooNew)
-		assert.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
+		require.ErrorIs(t, err, serializer.ErrSchemaTooNew)
+		require.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
 	})
 
 	t.Run("should reject a version below the migration suffix", func(t *testing.T) {
@@ -323,15 +324,15 @@ func TestRegisterVersioned(t *testing.T) {
 
 		envelope := `{"version":1,"type":"user","data":{"Name":"Jane Doe"}}`
 		_, err := s.Deserialize([]byte(envelope))
-		assert.ErrorIs(t, err, serializer.ErrNoMigrationPath)
-		assert.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
+		require.ErrorIs(t, err, serializer.ErrNoMigrationPath)
+		require.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
 	})
 
 	t.Run("should accept the legacy version zero", func(t *testing.T) {
 		s := serializer.NewJSONSerializer(serializer.Register(fixture.User{}))
 
 		data, err := s.Serialize(fixture.User1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Data written before envelope versioning carries "version":0; its byte
 		// layout is identical, so it must still deserialize.
@@ -339,7 +340,7 @@ func TestRegisterVersioned(t *testing.T) {
 		assert.NotEqual(t, data, legacy)
 
 		deserialized, err := s.Deserialize(legacy)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, fixture.User1, deserialized)
 	})
 
@@ -353,8 +354,8 @@ func TestRegisterVersioned(t *testing.T) {
 		// From(1) and From(3) at version 4 leave a hole at From(2).
 		assert.Panics(t, func() {
 			serializer.RegisterVersioned("user", 4, fixture.User{},
-				serializer.From(1, func(o userV1) (userV2, error) { return userV2{}, nil }),
-				serializer.From(3, func(o userV2) (fixture.User, error) { return fixture.User{}, nil }),
+				serializer.From(1, func(_ userV1) (userV2, error) { return userV2{}, nil }),
+				serializer.From(3, func(_ userV2) (fixture.User, error) { return fixture.User{}, nil }),
 			)
 		})
 	})
@@ -363,7 +364,7 @@ func TestRegisterVersioned(t *testing.T) {
 		// The last step outputs userV2, but the current type is fixture.User.
 		assert.Panics(t, func() {
 			serializer.RegisterVersioned("user", 2, fixture.User{},
-				serializer.From(1, func(o userV1) (userV2, error) { return userV2{}, nil }),
+				serializer.From(1, func(_ userV1) (userV2, error) { return userV2{}, nil }),
 			)
 		})
 	})
@@ -375,7 +376,7 @@ func TestSerialize(t *testing.T) {
 
 		// Serializing nil must return an error, not panic.
 		_, err := s.Serialize(nil)
-		assert.ErrorIs(t, err, serializer.ErrFailedToSerialize)
+		require.ErrorIs(t, err, serializer.ErrFailedToSerialize)
 	})
 
 	t.Run("should fail to serialize an unnamed type", func(t *testing.T) {
@@ -383,7 +384,7 @@ func TestSerialize(t *testing.T) {
 
 		// Anonymous structs have no stable wire name and are rejected.
 		_, err := s.Serialize(struct{ X int }{X: 1})
-		assert.ErrorIs(t, err, serializer.ErrFailedToSerialize)
+		require.ErrorIs(t, err, serializer.ErrFailedToSerialize)
 	})
 }
 
@@ -392,7 +393,7 @@ func TestSerializeList(t *testing.T) {
 		s := serializer.NewJSONSerializer()
 
 		_, err := s.SerializeList([]any{nil})
-		assert.ErrorIs(t, err, serializer.ErrFailedToSerializeList)
+		require.ErrorIs(t, err, serializer.ErrFailedToSerializeList)
 	})
 }
 
@@ -402,12 +403,12 @@ func TestDeserialize(t *testing.T) {
 		s := serializer.NewJSONSerializer(serializer.Register(userPtr(&fixture.User1)))
 
 		data, err := s.Serialize(userPtr(&fixture.User1))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// A defined pointer type cannot be reconstructed by reflect.New; the result
 		// must be a clean error, never a panic.
 		_, err = s.Deserialize(data)
-		assert.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
+		require.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
 	})
 }
 
@@ -417,12 +418,12 @@ func TestDeserializeList(t *testing.T) {
 
 		// Build a list whose only element is a serialized but unregistered Address.
 		serializedAddress, err := s.Serialize(fixture.Address1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		list, err := json.Marshal([][]byte{serializedAddress})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = s.DeserializeList(list)
-		assert.ErrorIs(t, err, serializer.ErrFailedToDeserializeList)
+		require.ErrorIs(t, err, serializer.ErrFailedToDeserializeList)
 	})
 }
 
@@ -433,7 +434,7 @@ func envelopeVersion(t *testing.T, data []byte) int {
 	var envelope struct {
 		Version int `json:"version"`
 	}
-	assert.NoError(t, json.Unmarshal(data, &envelope))
+	require.NoError(t, json.Unmarshal(data, &envelope))
 	return envelope.Version
 }
 
@@ -493,7 +494,7 @@ func BenchmarkSerialize(b *testing.B) {
 
 			b.ReportAllocs()
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				_, _ = tc.s.Serialize(tc.value)
 			}
 		})
@@ -508,7 +509,7 @@ func BenchmarkDeserialize(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				_, _ = tc.s.Deserialize(data)
 			}
 		})
@@ -524,7 +525,7 @@ func BenchmarkSerializeList(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				_, _ = tc.s.SerializeList(list)
 			}
 		})
@@ -539,7 +540,7 @@ func BenchmarkDeserializeList(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				_, _ = tc.s.DeserializeList(data)
 			}
 		})
