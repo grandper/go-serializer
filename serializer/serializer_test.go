@@ -303,6 +303,18 @@ func TestRegisterVersioned(t *testing.T) {
 		assert.Equal(t, fixture.User{Username: "janedoe"}, v)
 	})
 
+	t.Run("should tell a type that is not registered from a corrupted envelope", func(t *testing.T) {
+		s := serializer.NewJSONSerializer(serializer.RegisterAs("user", fixture.User{}))
+
+		_, err := s.Deserialize([]byte(`{"version":1,"type":"account","data":{}}`))
+		require.ErrorIs(t, err, serializer.ErrTypeNotRegistered)
+		require.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
+
+		_, err = s.Deserialize([]byte(`not an envelope`))
+		require.ErrorIs(t, err, serializer.ErrFailedToDeserialize)
+		require.NotErrorIs(t, err, serializer.ErrTypeNotRegistered)
+	})
+
 	t.Run("should reject a schema version that is too new", func(t *testing.T) {
 		s := serializer.NewJSONSerializer(serializer.RegisterAs("user", fixture.User{}))
 

@@ -247,11 +247,12 @@ if errors.Is(err, serializer.ErrFailedToDeserialize) {
 | `serializer.ErrFailedToSerializeList`   | serializing a list fails                        |
 | `serializer.ErrFailedToDeserialize`     | deserializing a struct fails                    |
 | `serializer.ErrFailedToDeserializeList` | deserializing a list fails                      |
+| `serializer.ErrTypeNotRegistered`       | the type named by the envelope is not registered |
 | `serializer.ErrSchemaTooNew`            | the schema version is newer than the registered type |
 | `serializer.ErrNoMigrationPath`         | the schema version is older than the current type but no migration reaches it |
 
-The underlying cause (a codec error, a type mismatch, an unregistered type…) is
-wrapped and available through `errors.Unwrap` / `%w`. `ErrSchemaTooNew` and
+The underlying cause (a codec error, a type mismatch…) is wrapped and available
+through `errors.Unwrap` / `%w`. `ErrTypeNotRegistered`, `ErrSchemaTooNew` and
 `ErrNoMigrationPath` are each wrapped **together with** `ErrFailedToDeserialize`,
 so either sentinel matches:
 
@@ -325,7 +326,7 @@ at construction.
 - Only **named, exported** struct types (and pointers to them) are supported;
   anonymous and unnamed types are rejected.
 - A type must be **registered before it can be deserialized**; deserializing an
-  unregistered type returns an error.
+  unregistered type returns `ErrTypeNotRegistered`.
 - The envelope is **always JSON** regardless of the codec — only the `data`
   payload uses the chosen codec.
 - `Serializer` is **safe for concurrent use** by multiple goroutines once

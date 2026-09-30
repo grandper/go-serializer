@@ -15,6 +15,11 @@ var (
 	// ErrFailedToDeserializeList is returned when deserialization of a list fails.
 	ErrFailedToDeserializeList = errors.New("failed to deserialize the list")
 
+	// ErrTypeNotRegistered is returned when the type named by an envelope is
+	// not registered on the serializer. It is always wrapped together with
+	// ErrFailedToDeserialize, so callers can match either sentinel.
+	ErrTypeNotRegistered = errors.New("the type is not registered")
+
 	// ErrSchemaTooNew is returned when an envelope's schema version is newer than
 	// the current registered version, so it cannot be migrated (forward
 	// compatibility is not supported). It is always wrapped together with

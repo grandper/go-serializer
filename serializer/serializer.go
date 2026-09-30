@@ -137,7 +137,7 @@ func (s *Serializer) Deserialize(data []byte) (any, error) {
 	}
 	reg, found := s.registrations[st.Type]
 	if !found {
-		return nil, fmt.Errorf("%w: the type '%s' is not registered", ErrFailedToDeserialize, st.Type)
+		return nil, fmt.Errorf("%w: %w: '%s'", ErrFailedToDeserialize, ErrTypeNotRegistered, st.Type)
 	}
 	payload, err := decodePayload(s.codec, st.Data)
 	if err != nil {
